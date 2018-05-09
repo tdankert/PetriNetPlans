@@ -1,5 +1,7 @@
-#include <pnp_ros/ActionProxy.h>
 #include <sstream>
+#include <ros/ros.h>
+#include <pnp_ros/names.h>
+#include <pnp_ros/ActionProxy.h>
 
 using namespace std;
 
@@ -47,6 +49,10 @@ namespace pnpros
             else ROS_WARN_STREAM("[PNPros]: No robot name defined. You should probably define it by setting the ros patameter \"robot_name\"");
           }
 
+          stringstream ssbuf;
+          ssbuf << PARAM_PNPACTIONSTATUS << name;
+          ros::param::set(ssbuf.str(),"init");
+
           active=false;
 
         if (pnpac == NULL) pnpac = new actionlib::ActionClient<pnp_msgs::PNPAction>("PNP");
@@ -62,10 +68,11 @@ namespace pnpros
 	    end();
 	}
 	
+    // static function
     void ActionProxy::actionTerminationCallback(const pnp_msgs::ActionFinished::ConstPtr& message)
 	{
 		ROS_INFO_STREAM("Deleting " << message->id);
-		activeActions.erase(message->id);
+		activeActions.erase(message->id); // activeActions is static
 	}
 	
     void ActionProxy::transitionCb(actionlib::ClientGoalHandle<pnp_msgs::PNPAction> gh)
@@ -121,7 +128,12 @@ namespace pnpros
 		
 		
 		goalhandler = pnpac->sendGoal(goal,boost::bind(&ActionProxy::transitionCb, this,  _1),boost::bind(&ActionProxy::feedbackCb, this, _1, _2));
-		
+
+        stringstream ssbuf;
+        ssbuf << PARAM_PNPACTIONSTATUS << name;
+        ros::param::set(ssbuf.str(),"run");
+
+
 		while ((goalhandler.getCommState() == actionlib::CommState::WAITING_FOR_GOAL_ACK) ||
 			   (goalhandler.getCommState() == actionlib::CommState::PENDING) //||
 			   //(goalhandler.getCommState() == actionlib::CommState::ACTIVE)
@@ -183,6 +195,10 @@ namespace pnpros
         //cout << "### In end function: gh state = " << goalhandler.getCommState().toString() << endl;
 #endif
 
+        stringstream ssbuf;
+        ssbuf << PARAM_PNPACTIONSTATUS << name;
+        ros::param::set(ssbuf.str(),"end");
+
         ROS_INFO_STREAM("End: "+robotname+" "+ name + " " + params + " - ID: " + id);
     }
 
@@ -235,7 +251,11 @@ namespace pnpros
 		}
 #endif
 
-    ROS_INFO_STREAM("Interrupt: "+robotname+" "+ name + " " + params + " - ID: " + id);
+        stringstream ssbuf;
+        ssbuf << PARAM_PNPACTIONSTATUS << name;
+        ros::param::set(ssbuf.str(),"interrupt");
+
+        ROS_INFO_STREAM("Interrupt: "+robotname+" "+ name + " " + params + " - ID: " + id);
 	}
 
 	bool ActionProxy::finished()

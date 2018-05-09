@@ -21,6 +21,7 @@ template<typename PnpPlanClass>
 		if (plan == NULL) {
 			PNP_ERR(planName << " is not a plan");
 			delete planEx;
+            planEx = NULL;
 			return;
 		}
 
@@ -45,7 +46,8 @@ std::string PnpExecuter<PnpPlanClass>::getMainPlanName() const {
 template<typename PnpPlanClass>
 bool PnpExecuter<PnpPlanClass>::goalReached() {
 
-	return mainPlan->finished();
+	return (mainPlan != NULL)?mainPlan->finished():false;
+
 }
 
 /** 
@@ -54,7 +56,8 @@ bool PnpExecuter<PnpPlanClass>::goalReached() {
 template<typename PnpPlanClass>
 bool PnpExecuter<PnpPlanClass>::failReached() {
 
-	return mainPlan->failed();
+	return (mainPlan != NULL)?mainPlan->failed():true;
+
 }
 
 
@@ -79,6 +82,7 @@ bool PnpExecuter<PnpPlanClass>::execMainPlanStep()
 
 template<typename PnpPlanClass>
 PnpExecuter<PnpPlanClass>::~PnpExecuter(){
-	delete mainPlan;
+    if(mainPlan != NULL)
+    	delete mainPlan;
 	delete istantiator;
 }

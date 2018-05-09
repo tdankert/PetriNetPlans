@@ -8,7 +8,10 @@ import os
 G_actionThread_exec = {}  # action thread execution functions
 G_actionThreads = {}  # action threads functions
 
-cakey = "PNP/CurrentAction"
+key_actioncmd = "PNP/ActionCmd"
+key_currentaction = "PNP/CurrentAction"
+key_actionresult = "PNP/ActionResult/"
+
 
 acb = None # action callback
 
@@ -26,15 +29,17 @@ def action_cb(value):
             G_actionThreads[actionName] = threading.Thread(target = G_actionThread_exec[v[1]], args=(params,))
             G_actionThreads[actionName].mem_serv = G_memory_service
             G_actionThreads[actionName].session = G_session
+            G_memory_service.raiseEvent(key_currentaction,actionName+"_"+params)
+            G_memory_service.raiseEvent("PNP_action_result_"+actionName,"run");
             G_actionThreads[actionName].start()
-            G_memory_service.raiseEvent(cakey,actionName+"_"+params)
+
         else:
             print "ERROR: Action ",v[1]," not found !!!"
     elif (v[0]=='end' or v[0]=='stop' or v[0]=='interrupt'):
         try:
             actionName = v[1]
             G_actionThreads[actionName].do_run = False  # execution thread associated to actionName
-            G_memory_service.raiseEvent(cakey,"")
+            G_memory_service.raiseEvent(key_currentaction,"")
             # print "DEBUG: action ",actionName," ended.  Thread ",G_actionThreads[actionName]
         except:
             print "ERROR: Action ",v[1]," not started !!!"
@@ -74,12 +79,12 @@ def init(session, actionName, actionThread_exec):
 
     #subscribe to PNP action event
     if (acb==None):
-        acb = G_memory_service.subscriber("PNP_action")
+        print('Naoqi subscriber to %s\n' %(key_actioncmd))
+        acb = G_memory_service.subscriber(key_actioncmd)
         acb.signal.connect(action_cb)
 
-    G_memory_service.declareEvent("PNP_action_result_"+actionName);
-    G_memory_service.declareEvent("PNP/CurrentAction");
-
+    G_memory_service.declareEvent(key_actionresult+actionName);
+    G_memory_service.declareEvent(key_currentaction);
 
     print "Naoqi Action server "+actionName+" running..."
 

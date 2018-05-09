@@ -1,20 +1,21 @@
-#include <pnp_ros/ActionProxy.h>
-#include <pnp_ros/ROSConds.h>
-#include <pnp_ros/ROSInst.h>
-#include <pnp_ros/LearnPNP/ROSLearnInstantiator.h>
-#include <pnp_ros/LearnPNP/ROSReward.h>
-#include <pnp_ros/LearnPNP/World/World.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <cstdlib>
+#include <fstream>
 #include <ros/ros.h>
 #include <std_msgs/String.h>
 #include <pnp/basic_plan/basic_plan.h>
 #include <pnp/learning_plan/learnPlan.h>
 #include <pnp/pnp_executer.h>
 #include <pnp_msgs/Action.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <cstdlib>
-#include <fstream>
+#include <pnp_ros/ActionProxy.h>
+#include <pnp_ros/ROSConds.h>
+#include <pnp_ros/ROSInst.h>
+#include <pnp_ros/LearnPNP/ROSLearnInstantiator.h>
+#include <pnp_ros/LearnPNP/ROSReward.h>
+#include <pnp_ros/LearnPNP/World/World.h>
+#include <pnp_ros/names.h>
 
 #include <pnp/connection_observer.h>
 
@@ -24,11 +25,6 @@ using namespace pnpros;
 using namespace pnpros::LearnPNP;
 using std_msgs::String;
 
-#define TOPIC_PLANTOEXEC "planToExec"
-#define TOPIC_PNPACTION "pnp_action"
-#define TOPIC_PNPACTIONCMD "PNPActionCmd"
-#define TOPIC_PNPACTIONTERMINATION "pnp_action_termination"
-#define TOPIC_PNPACTIVEPLACES "pnp/currentActivePlaces"
 
 
 // Global variables
@@ -133,7 +129,8 @@ int main(int argc, char** argv)
 
     robot_name = "NONAME";
 	if (!n.getParam("robot_name",robot_name))
-		n.getParam("tf_prefix", robot_name);
+	    if (!n.getParam("robotname",robot_name))
+		    n.getParam("tf_prefix", robot_name);
 
 	
     ros::Subscriber planToExecSub = n.subscribe(TOPIC_PLANTOEXEC, 1, planToExecuteCallback);
@@ -353,13 +350,15 @@ int main(int argc, char** argv)
                         cout << "Using GUI execution monitoring\nWaiting for a client to connect on port 47996" << endl;
 
                     ConnectionObserver observer(planName, use_java_connection);
-                    PlanObserver* new_observer = &observer;
-
                     executor->setMainPlan(planName);
+
+                    PlanObserver* new_observer = &observer;
                     executor->setObserver(new_observer);
 
-                    if (executor->getMainPlanName()!="") {
-
+                    if (executor->getMainPlanName()=="") {
+                        planToExec="stop";
+                    }
+                    else {
                         cout << "Starting " << executor->getMainPlanName() << endl;
 
                         String activePlaces;
@@ -391,7 +390,7 @@ int main(int argc, char** argv)
 */
 
                             rate.sleep();
-                        }
+                        } // while
 
                         if (executor->goalReached()) {
                             cout << "GOAL NODE REACHED!!!" << endl;
